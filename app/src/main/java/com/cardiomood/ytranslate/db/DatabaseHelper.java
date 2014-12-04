@@ -49,6 +49,7 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
     public synchronized TranslationHistoryDao getTranslationHistoryDao() throws SQLException {
         if (translationHistoryDao == null) {
             translationHistoryDao = new TranslationHistoryDao(getConnectionSource(), TranslationHistoryEntity.class);
+            translationHistoryDao.setObjectCache(true);
         }
         return translationHistoryDao;
     }

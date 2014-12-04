@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp"
+    android:descendantFocusability="blocksDescendants">
+
+    <ImageButton
+        android:id="@+id/favorite_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:drawable/ic_input_add"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"/>
+
+    <TextView
+        android:id="@+id/src_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="8dp"
+        android:textAppearance="?android:textAppearanceMedium"
+        android:singleLine="true"
+        android:layout_toRightOf="@+id/favorite_button"
+        android:layout_toLeftOf="@+id/src_lang"
+        android:ellipsize="end"
+        android:text="Source Text"/>
+
+    <TextView
+        android:id="@+id/translated_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="8dp"
+        android:textAppearance="?android:textAppearanceSmall"
+        android:layout_below="@+id/src_text"
+        android:singleLine="true"
+        android:layout_toRightOf="@+id/favorite_button"
+        android:layout_toLeftOf="@+id/src_lang"
+        android:ellipsize="end"
+        android:text="Translated text"/>
+
+    <TextView
+        android:id="@+id/src_lang"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@+id/arrow"
+        android:layout_centerVertical="true"
+        android:text="En"/>
+
+    <TextView
+        android:id="@+id/arrow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@+id/target_lang"
+        android:layout_centerVertical="true"
+        android:text="→"/>
+
+    <TextView
+        android:id="@+id/target_lang"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:text="ru"/>
+
+</RelativeLayout>

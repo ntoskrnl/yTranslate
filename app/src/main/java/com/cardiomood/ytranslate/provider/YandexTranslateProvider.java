@@ -39,7 +39,7 @@ public class YandexTranslateProvider extends TranslateProvider {
     public TranslatedText translate(String text, Language targetLanguage, Language sourceLanguage) {
         String dir = targetLanguage.getLanguage();
         if (sourceLanguage != null) {
-            dir = sourceLanguage.getLanguage() + "-" + targetLanguage.getName();
+            dir = sourceLanguage.getLanguage() + "-" + targetLanguage.getLanguage();
         }
         TranslationResult result = service.translate(text, dir, FORMAT);
         // TODO: do all necessary checks!

@@ -4,28 +4,18 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.Toast;
 
 import com.cardiomood.ytranslate.R;
 import com.cardiomood.ytranslate.provider.Language;
-import com.cardiomood.ytranslate.provider.TranslateProvider;
-import com.cardiomood.ytranslate.provider.YandexTranslateProvider;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
-import bolts.Continuation;
-import bolts.Task;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
@@ -164,6 +154,13 @@ public class LanguageSelectionDialogFragment extends DialogFragment {
             super(context, resource, textViewResourceId, objects);
         }
 
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View v = super.getView(position, convertView, parent);
+            v.setBackgroundResource(android.R.drawable.list_selector_background);
+            v.setClickable(true);
+            return v;
+        }
     }
 
     private static class ItemHolder implements Comparable<ItemHolder> {

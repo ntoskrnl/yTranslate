@@ -1,25 +1,26 @@
 package com.cardiomood.ytranslate;
 
 import android.app.Activity;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.os.Bundle;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.support.v4.widget.DrawerLayout;
 import android.widget.Toast;
 
+import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
+import com.cardiomood.ytranslate.fragments.HistoryFragment;
 import com.cardiomood.ytranslate.fragments.TranslationFragment;
-import com.cardiomood.ytranslate.fragments.WordListFragment;
 
 
 public class MainActivity extends ActionBarActivity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks, WordListFragment.OnFragmentInteractionListener {
+        implements NavigationDrawerFragment.NavigationDrawerCallbacks, HistoryFragment.OnFragmentInteractionListener {
 
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
@@ -108,8 +109,8 @@ public class MainActivity extends ActionBarActivity
     }
 
     @Override
-    public void onFragmentInteraction(String id) {
-        Toast.makeText(this, "Selected item: " + id, Toast.LENGTH_SHORT).show();
+    public void onHistoryItemSelected(TranslationHistoryEntity historyItem) {
+        Toast.makeText(this, "Selected item: " + historyItem.getSourceText(), Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -131,7 +132,7 @@ public class MainActivity extends ActionBarActivity
                 return new TranslationFragment();
             }
             if (sectionNumber == 2) {
-                return new WordListFragment();
+                return new HistoryFragment();
             }
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();

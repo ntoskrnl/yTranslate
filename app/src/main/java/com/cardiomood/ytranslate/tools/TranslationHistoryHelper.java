@@ -1,7 +1,5 @@
 package com.cardiomood.ytranslate.tools;
 
-import android.content.Context;
-
 import com.cardiomood.ytranslate.db.DatabaseHelper;
 import com.cardiomood.ytranslate.db.DatabaseHelperFactory;
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryDao;
@@ -134,6 +132,22 @@ public class TranslationHistoryHelper {
                             .orderBy("target_lang", true)
                             .offset((long) offset)
                             .limit((long) limit)
+                            .prepare()
+            );
+        }
+    }
+
+    public List<TranslationHistoryEntity> getLastTranslations(String query, int offset, int limit) throws SQLException {
+        synchronized (helper) {
+            return historyDao.query(
+                    historyDao.queryBuilder()
+                            .orderBy("last_accessed", false)
+                            .orderBy("src_lang", true)
+                            .orderBy("target_lang", true)
+                            .offset((long) offset)
+                            .limit((long) limit)
+                            .where().like("src_text", new SelectArg("%" + query + "%"))
+                            .or().like("translation", new SelectArg("%" + query + "%"))
                             .prepare()
             );
         }
