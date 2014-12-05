@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.method.MovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
@@ -46,7 +47,9 @@ public class ClickableWordsHelper {
     }
 
     private String linkifyWords(String line) {
-        String[] words = line.split(String.format(SPLIT_PATTERN_FORMAT, DEFAULT_DELIMITER));
+        if (TextUtils.isEmpty(line))
+            return "";
+        String[] words = line.trim().split(String.format(SPLIT_PATTERN_FORMAT, DEFAULT_DELIMITER));
         StringBuilder sb = new StringBuilder();
         for (String word: words) {
             if (!mPattern.matcher(word).matches()) {
@@ -70,6 +73,11 @@ public class ClickableWordsHelper {
     }
 
     private void setTextViewHTML(TextView text, String html) {
+        if (TextUtils.isEmpty(html)) {
+            text.setText(null);
+            return;
+        }
+
         CharSequence sequence = Html.fromHtml(html);
         SpannableStringBuilder strBuilder = new SpannableStringBuilder(sequence);
         URLSpan[] urls = strBuilder.getSpans(0, sequence.length(), URLSpan.class);

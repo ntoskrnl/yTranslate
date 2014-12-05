@@ -2,9 +2,10 @@ package com.cardiomood.ytranslate.tools;
 
 import com.cardiomood.ytranslate.db.DatabaseHelper;
 import com.cardiomood.ytranslate.db.DatabaseHelperFactory;
+import com.cardiomood.ytranslate.db.entity.LanguageDao;
+import com.cardiomood.ytranslate.db.entity.LanguageEntity;
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryDao;
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
-import com.cardiomood.ytranslate.provider.YandexTranslateProvider;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.SelectArg;
@@ -52,66 +53,53 @@ public class TranslationHistoryHelper {
             "order by\n"+
             "last_access desc limit ?";
 
-    private static final String GET_RECENT_SOURCE_LANGUAGES_SQL =
-            "select\n" +
-            "   src_lang as lang,\n" +
-            "   max(last_accessed) as last_access     \n" +
-            "from\n" +
-            "   translation_history    \n" +
-            "where\n" +
-            "   target_lang = ?      \n" +
-            "group by\n" +
-            "   src_lang       \n" +
-            "order by\n" +
-            "   last_access desc,\n" +
-            "   lang asc  limit ?";
-
-    private static final String GET_RECENT_TARGET_LANGUAGES_SQL =
-            "select\n" +
-            "   target_lang as lang,\n" +
-            "   max(last_accessed) as last_access     \n" +
-            "from\n" +
-            "   translation_history    \n" +
-            "where\n" +
-            "   src_lang = ?      \n" +
-            "group by\n" +
-            "   target_lang       \n" +
-            "order by\n" +
-            "   last_access desc,\n" +
-            "   lang asc  limit ?";
-
     private final DatabaseHelper helper;
     private final TranslationHistoryDao historyDao;
+    private final LanguageDao languageDao;
 
     public TranslationHistoryHelper() throws SQLException {
         helper = DatabaseHelperFactory.getHelper();
-        historyDao = DatabaseHelperFactory.getHelper().getTranslationHistoryDao();
+        historyDao = helper.getTranslationHistoryDao();
+        languageDao = helper.getLanguageDao();
     }
 
-    public Task<TranslationHistoryEntity> saveTranslation(final String srcLang, final String targetLang, final String srcText, final String translation) {
+    public Task<TranslationHistoryEntity> saveTranslationAsync(
+            final String srcLang,
+            final String targetLang,
+            final String srcText,
+            final String translation,
+            final String providerName
+    ) {
         return Task.callInBackground(new Callable<TranslationHistoryEntity>() {
             @Override
             public TranslationHistoryEntity call() throws Exception {
-                synchronized (helper) {
-                    TranslationHistoryEntity entity = findHistoryItem(srcLang, targetLang, srcText, false);
-                    if (entity == null) {
-                        entity = createHistoryItem(srcLang, targetLang, srcText, translation);
-                    } else {
-                        // update translation
-                        Date now = new Date();
-                        entity.setTranslation(translation);
-                        if (now.after(entity.getLastUpdated())) {
-                            entity.setLastUpdated(now);
-                        }
-                        if (now.after(entity.getLastAccessed())) {
-                            entity.setLastAccessed(now);
-                        }
-                        historyDao.update(entity);
-                    }
-                    return entity;
-                }
+                return saveTranslation(srcLang, targetLang, srcText, translation, providerName);
             }
         });
+    }
+
+    public TranslationHistoryEntity saveTranslation(
+            String srcLang, String targetLang,
+            String srcText, String translation, String providerName) throws SQLException {
+
+        synchronized (helper) {
+            TranslationHistoryEntity entity = findHistoryItem(srcLang, targetLang, srcText, false);
+            if (entity == null) {
+                entity = createHistoryItem(srcLang, targetLang, srcText, translation, providerName);
+            } else {
+                // update translation
+                Date now = new Date();
+                entity.setTranslation(translation);
+                if (now.after(entity.getLastUpdated())) {
+                    entity.setLastUpdated(now);
+                }
+                if (now.after(entity.getLastAccessed())) {
+                    entity.setLastAccessed(now);
+                }
+                historyDao.update(entity);
+            }
+            return entity;
+        }
     }
 
     public Task<List<TranslationHistoryEntity>> getLastTranslationsAsync(final int offset, final int limit) {
@@ -184,7 +172,15 @@ public class TranslationHistoryHelper {
         // LinkedHashMap is used here to preserve the iteration order
         Map<String, Date> result = new LinkedHashMap<>(limit);
 
-        // construct query
+        // construct query:
+        //            select src_lang as lang,
+        //                   max(last_accessed) as last_access
+        //            from translation_history
+        //            where target_lang = ? <-- if provided!
+        //            group by src_lang
+        //            order by last_access desc,
+        //                     lang asc
+        //            limit ?
         QueryBuilder<TranslationHistoryEntity, Long> builder = historyDao.queryBuilder()
                 .selectRaw("src_lang as lang", "max(last_accessed) as last_access")
                 .groupByRaw("lang")
@@ -211,7 +207,15 @@ public class TranslationHistoryHelper {
     public Map<String, Date> getRecentTargetLanguages(String srcLang, int limit) throws SQLException {
         // LinkedHashMap is used here to preserve the iteration order
         Map<String, Date> result = new LinkedHashMap<>(limit);
-        // construct query
+        // construct query:
+        //            select target_lang as lang,
+        //                   max(last_accessed) as last_access
+        //            from translation_history
+        //            where src_lang = ? <-- if provided!
+        //            group by target_lang
+        //            order by last_access desc,
+        //                     lang asc
+        //            limit ?
         QueryBuilder<TranslationHistoryEntity, Long> builder = historyDao.queryBuilder()
                 .selectRaw("target_lang as lang", "max(last_accessed) as last_access")
                 .groupByRaw("lang")
@@ -254,8 +258,8 @@ public class TranslationHistoryHelper {
         }
     }
 
-    protected TranslationHistoryEntity createHistoryItem(String srcLang, String targetLang,
-                                                         String srcText, String translation) throws SQLException {
+    public TranslationHistoryEntity createHistoryItem(String srcLang, String targetLang,
+                                                         String srcText, String translation, String providerName) throws SQLException {
         // create entity
         Date now = new Date();
         TranslationHistoryEntity entity = new TranslationHistoryEntity();
@@ -266,7 +270,9 @@ public class TranslationHistoryHelper {
         entity.setTargetLang(targetLang);
         entity.setSourceText(srcText);
         entity.setTranslation(translation);
-        entity.setTranslationProvider(YandexTranslateProvider.class.getName());
+        entity.setTranslationProvider(providerName);
+
+        // TODO: add MD5 calculation for large text
 
         // persist entity
         synchronized (helper) {
@@ -276,8 +282,10 @@ public class TranslationHistoryHelper {
     }
 
 
-    protected TranslationHistoryEntity findHistoryItem(String srcLang, String targetLang,
+    public TranslationHistoryEntity findHistoryItem(String srcLang, String targetLang,
                                                        String srcText, boolean update) throws SQLException {
+
+        // TODO: add search by MD5 for large text
 
         // construct query predicate
         Where<TranslationHistoryEntity, Long> predicate = historyDao.queryBuilder()
@@ -310,12 +318,31 @@ public class TranslationHistoryHelper {
     }
 
 
-    public Task<TranslationHistoryEntity> lookup(final String srcLang, final String dstLang, final String text) {
+    public Task<TranslationHistoryEntity> findHistoryItemAsync(final String srcLang, final String dstLang, final String text) {
         return Task.callInBackground(new Callable<TranslationHistoryEntity>() {
             @Override
             public TranslationHistoryEntity call() throws Exception {
                 return findHistoryItem(srcLang, dstLang, text, true);
             }
         });
+    }
+
+    public List<LanguageEntity> getSupportedLanguages() throws SQLException {
+        synchronized (helper) {
+            return languageDao.queryBuilder()
+                    .orderBy(LanguageEntity.NAME_COLUMN, true)
+                    .query();
+        }
+    }
+
+    public LanguageEntity createOrUpdateLanguage(String shortCode, String name) throws SQLException {
+        synchronized (helper) {
+            LanguageEntity entity = languageDao.findByShortCode(shortCode);
+            if (entity == null) {
+                entity = new LanguageEntity(shortCode, name);
+            }
+            helper.getLanguageDao().createOrUpdate(entity);
+            return entity;
+        }
     }
 }

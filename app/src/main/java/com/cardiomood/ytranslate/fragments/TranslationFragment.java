@@ -17,17 +17,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.cardiomood.ytranslate.R;
-import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
 import com.cardiomood.ytranslate.provider.Language;
 import com.cardiomood.ytranslate.provider.TranslateProvider;
 import com.cardiomood.ytranslate.provider.TranslatedText;
 import com.cardiomood.ytranslate.provider.YandexTranslateProvider;
+import com.cardiomood.ytranslate.tools.HistoryAwareTranslateProvider;
 import com.cardiomood.ytranslate.tools.TranslationHistoryHelper;
 import com.cardiomood.ytranslate.ui.ClickableWordsHelper;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -68,7 +67,7 @@ public class TranslationFragment extends Fragment {
     Language selectedSourceLanguage;
     Language selectedTargetLanguage;
 
-    TranslateProvider translateProvider = new YandexTranslateProvider(API_KEY);
+    TranslateProvider translateProvider = new HistoryAwareTranslateProvider(new YandexTranslateProvider(API_KEY));
     TranslationHistoryHelper historyHelper;
 
     Map<String, Language> supportedLanguages = Collections.emptyMap();
@@ -222,13 +221,15 @@ public class TranslationFragment extends Fragment {
 
         initLanguages();
 
+        // TODO: decouple from history helper!
         try {
             historyHelper = new TranslationHistoryHelper();
         } catch (SQLException ex) {
             Toast.makeText(getActivity(), "Failed to initialize translation history", Toast.LENGTH_SHORT).show();
             Log.w(TAG, "onViewCreated(): failed to create TranslationHistoryHelper", ex);
-            translateButton.setEnabled(false);
         }
+
+        // TODO: implement save/restore instance state to provide better UX
     }
 
     private void initLanguages() {
@@ -274,46 +275,23 @@ public class TranslationFragment extends Fragment {
         if (text.isEmpty() || targetLang == null)
             return;
 
-        if (historyHelper == null) {
-            return;
-        }
-
         translateButton.setEnabled(false);
-        historyHelper.lookup(
-                srcLang == null ? null : srcLang.getLanguage(),
-                targetLang.getLanguage(),
-                text
-        ).onSuccess(new Continuation<TranslationHistoryEntity, TranslatedText>() {
-            @Override
-            public TranslatedText then(Task<TranslationHistoryEntity> task) throws Exception {
-                TranslationHistoryEntity historyItem = task.getResult();
-                if (historyItem == null) {
-                    // no history entry found
-                    return translateProvider.translate(text, targetLang, srcLang);
-                }
-
-                // return cached result
-                return new CachedTranslatedText(
-                        historyItem.getSourceLang(),
-                        historyItem.getTargetLang(),
-                        Arrays.asList(historyItem.getTranslation().split("\\n"))
-                );
-            }
-        }).continueWith(new Continuation<TranslatedText, Object>() {
-            @Override
-            public Object then(Task<TranslatedText> task) throws Exception {
-                translateButton.setEnabled(true);
-                if (task.isCompleted()) {
-                    onTranslationReady(task.getResult());
-                } else {
-                    // handle error
-                    Log.e(TAG, "translate() failed with exception", task.getError());
-                    Toast.makeText(getActivity(), "Translation failed. Check Internet connection.",
-                            Toast.LENGTH_SHORT).show();
-                }
-                return null;
-            }
-        }, Task.UI_THREAD_EXECUTOR);
+        translateProvider.translateAsync(text, targetLang, srcLang)
+                .continueWith(new Continuation<TranslatedText, Object>() {
+                    @Override
+                    public Object then(Task<TranslatedText> task) throws Exception {
+                        translateButton.setEnabled(true);
+                        if (task.isFaulted()) {
+                            // handle error
+                            Log.e(TAG, "translate() failed with exception", task.getError());
+                            Toast.makeText(getActivity(), "Translation failed. Check Internet connection.",
+                                    Toast.LENGTH_SHORT).show();
+                        } else if (task.isCompleted()) {
+                            onTranslationReady(task.getResult());
+                        }
+                        return null;
+                    }
+                }, Task.UI_THREAD_EXECUTOR);
     }
 
     private void onTranslationReady(TranslatedText text) {
@@ -321,32 +299,7 @@ public class TranslationFragment extends Fragment {
         for (String translation : text.getText()) {
             sb.append(translation).append("\n");
         }
-        sb.delete(sb.length() - 1, sb.length());
-
-        if (!(text instanceof CachedTranslatedText) && historyHelper != null) {
-            if (text.getSourceLanguage() != null && text.getTargetLanguage() != null) {
-                historyHelper.saveTranslation(text.getSourceLanguage(),
-                        text.getTargetLanguage(), sourceText.getText().toString() , sb.toString())
-                .continueWith(new Continuation<TranslationHistoryEntity, Object>() {
-                    @Override
-                    public Object then(Task<TranslationHistoryEntity> task) throws Exception {
-                        if (task.isCompleted()) {
-                            Toast.makeText(getActivity(),
-                                    "Item saved with id=" + task.getResult().getId(), Toast.LENGTH_SHORT)
-                                    .show();
-                        } else {
-                            Log.w(TAG, "historyHelper.saveTranslation() failed", task.getError());
-                            Toast.makeText(getActivity(),
-                                    "Failed to save this translation to history.", Toast.LENGTH_SHORT)
-                                    .show();
-                        }
-                        return null;
-                    }
-                }, Task.UI_THREAD_EXECUTOR);
-            }
-        }
-
-        wordClickHelper.setText(sb.toString());
+        wordClickHelper.setText(sb.toString().trim());
 
         Language lang = supportedLanguages.get(text.getSourceLanguage());
         if (lang != null) {
@@ -422,10 +375,4 @@ public class TranslationFragment extends Fragment {
         }
     }
 
-    private static class CachedTranslatedText extends TranslatedText {
-
-        public CachedTranslatedText(String sourceLanguage, String targetLanguage, List<String> text) {
-            super(sourceLanguage, targetLanguage, text);
-        }
-    }
 }
