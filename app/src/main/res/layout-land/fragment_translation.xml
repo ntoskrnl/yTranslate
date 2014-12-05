@@ -26,6 +26,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginRight="8dp"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:text="Detect Language"/>
 
@@ -35,14 +36,14 @@
                 android:layout_height="wrap_content"
                 android:text="&lt;===&gt;"
                 android:textStyle="bold"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"/>
+                style="@style/PrimaryButton"/>
 
             <TextView
                 android:id="@+id/dst_lang"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginLeft="8dp"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:text="Select language"/>
 
@@ -68,6 +69,7 @@
             android:id="@+id/translate_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            style="@style/PrimaryButton"
             android:text="Translate!"/>
 
 

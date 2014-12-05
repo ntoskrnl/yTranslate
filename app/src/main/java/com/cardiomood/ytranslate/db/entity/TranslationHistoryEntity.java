@@ -50,6 +50,10 @@ public class TranslationHistoryEntity {
     @DatabaseField(columnName = PROVIDER_CLASS_COLUMN, canBeNull = false)
     private String translationProvider;
 
+    public static final String IS_FAVORITE_COLUMN = "is_favorite";
+    @DatabaseField(columnName = IS_FAVORITE_COLUMN)
+    private boolean favorite;
+
     public Long getId() {
         return id;
     }
@@ -120,5 +124,17 @@ public class TranslationHistoryEntity {
 
     public void setLastAccessed(Date lastAccessed) {
         this.lastAccessed = lastAccessed;
+    }
+
+    public boolean getFavorite() {
+        return favorite;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
     }
 }

@@ -27,16 +27,16 @@ public class TranslationHistoryAdapter extends EndlessAdapter implements Filtera
 
     private Filter mFilter;
     private String query = null;
+    private boolean favorites = false;
 
 
-    public TranslationHistoryAdapter(Context context, ArrayAdapter<TranslationHistoryEntity> wrapped) throws SQLException{
+    public TranslationHistoryAdapter(Context context, ArrayAdapter<TranslationHistoryEntity> wrapped, boolean favorites) throws SQLException{
         super(context, wrapped, android.R.layout.simple_list_item_1);
 
-        wrapped.setNotifyOnChange(false);
-
         // initialize adapter
-        setSerialized(true);
+        this.favorites = favorites;
         historyHelper = new TranslationHistoryHelper();
+        setSerialized(true);
     }
 
     @Override
@@ -44,9 +44,16 @@ public class TranslationHistoryAdapter extends EndlessAdapter implements Filtera
         // get more items in background
         cachedItems.clear();
         try {
-            List<TranslationHistoryEntity> items = (query == null)
-                    ? historyHelper.getLastTranslations(getWrappedAdapter().getCount(), 20)
-                    : historyHelper.getLastTranslations(query, getWrappedAdapter().getCount(), 20);
+            List<TranslationHistoryEntity> items = null;
+            if (favorites) {
+                items = (query == null)
+                        ? historyHelper.getFavoriteTranslations(getWrappedAdapter().getCount(), 30)
+                        : historyHelper.getFavoriteTranslations(query, getWrappedAdapter().getCount(), 30);
+            } else {
+                items = (query == null)
+                        ? historyHelper.getLastTranslations(getWrappedAdapter().getCount(), 30)
+                        : historyHelper.getLastTranslations(query, getWrappedAdapter().getCount(), 30);
+            }
             cachedItems.addAll(items);
         } catch (SQLException ex) {
             Log.e(TAG, "cacheInBackground() failed", ex);
@@ -63,6 +70,12 @@ public class TranslationHistoryAdapter extends EndlessAdapter implements Filtera
         }
     }
 
+    public void refresh() {
+        restartAppending();
+        @SuppressWarnings("unchecked")
+        ArrayAdapter<TranslationHistoryEntity> adapter = (ArrayAdapter<TranslationHistoryEntity>) getWrappedAdapter();
+        adapter.clear();
+    }
 
 
     public TranslationHistoryEntity getHistoryItem(int position) {
@@ -98,11 +111,7 @@ public class TranslationHistoryAdapter extends EndlessAdapter implements Filtera
                     return;
                 query = constraint.toString();
             }
-            restartAppending();
-            @SuppressWarnings("unchecked")
-            ArrayAdapter<TranslationHistoryEntity> adapter = (ArrayAdapter<TranslationHistoryEntity>) getWrappedAdapter();
-            adapter.clear();
-            adapter.notifyDataSetChanged();
+            refresh();
         }
     }
 

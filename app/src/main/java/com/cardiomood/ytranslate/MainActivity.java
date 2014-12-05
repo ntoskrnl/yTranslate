@@ -12,7 +12,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
 import com.cardiomood.ytranslate.fragments.HistoryFragment;
@@ -31,6 +30,9 @@ public class MainActivity extends ActionBarActivity
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
     private CharSequence mTitle;
+
+
+    private boolean suppressBackButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +70,9 @@ public class MainActivity extends ActionBarActivity
             case 3:
                 mTitle = getString(R.string.title_section3);
                 break;
+            case 4:
+                mTitle = getString(R.string.title_section4);
+                break;
         }
     }
 
@@ -101,7 +106,7 @@ public class MainActivity extends ActionBarActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            mNavigationDrawerFragment.selectItem(2);
+            mNavigationDrawerFragment.selectItem(3);
             return true;
         }
 
@@ -110,7 +115,24 @@ public class MainActivity extends ActionBarActivity
 
     @Override
     public void onHistoryItemSelected(TranslationHistoryEntity historyItem) {
-        Toast.makeText(this, "Selected item: " + historyItem.getSourceText(), Toast.LENGTH_SHORT).show();
+        mNavigationDrawerFragment.selectItem(1);
+        Fragment fragment = TranslationFragment.newInstance(historyItem);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.beginTransaction()
+                .replace(R.id.container, fragment)
+                .commit();
+        updateTitle(1);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (!suppressBackButton) {
+            super.onBackPressed();
+        }
+    }
+
+    public void suppressBackButton(boolean suppress) {
+        suppressBackButton = suppress;
     }
 
     /**
@@ -132,7 +154,10 @@ public class MainActivity extends ActionBarActivity
                 return new TranslationFragment();
             }
             if (sectionNumber == 2) {
-                return new HistoryFragment();
+                return HistoryFragment.newInstance(true);
+            }
+            if (sectionNumber == 3) {
+                return HistoryFragment.newInstance(false);
             }
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();

@@ -1,5 +1,8 @@
 package com.cardiomood.ytranslate.provider;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import java.util.Locale;
 
 /**
@@ -8,7 +11,7 @@ import java.util.Locale;
  *
  * Created by Anton Danshin on 28/11/14.
  */
-public class Language implements Comparable<Language> {
+public class Language implements Comparable<Language>, Parcelable {
 
     private final String language;
     private final String name;
@@ -74,5 +77,34 @@ public class Language implements Comparable<Language> {
             return language.compareToIgnoreCase(another.language);
         }
         return name.compareToIgnoreCase(another.name);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(language);
+        dest.writeString(name);
+        dest.writeString(uiLanguage);
+    }
+
+    public static final Parcelable.Creator<Language> CREATOR
+            = new Parcelable.Creator<Language>() {
+        public Language createFromParcel(Parcel in) {
+            return new Language(in);
+        }
+
+        public Language[] newArray(int size) {
+            return new Language[size];
+        }
+    };
+
+    private Language(Parcel in) {
+        this.language = in.readString();
+        this.name = in.readString();
+        this.uiLanguage = in.readString();
     }
 }

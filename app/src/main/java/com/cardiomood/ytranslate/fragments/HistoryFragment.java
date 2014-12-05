@@ -26,12 +26,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.cardiomood.ytranslate.R;
+import com.cardiomood.ytranslate.db.DatabaseHelperFactory;
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
+import com.cardiomood.ytranslate.ui.TouchEffect;
 import com.cardiomood.ytranslate.ui.TranslationHistoryAdapter;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+
+import bolts.Continuation;
+import bolts.Task;
 
 /**
  * A fragment representing a list of Items.
@@ -47,6 +53,8 @@ public class HistoryFragment extends Fragment
 
     private static final String TAG = HistoryFragment.class.getSimpleName();
 
+    public static final String ARG_FAVORITES = "favorites";
+
     private OnFragmentInteractionListener mListener;
 
     /**
@@ -60,6 +68,8 @@ public class HistoryFragment extends Fragment
      */
     private TranslationHistoryAdapter mAdapter;
 
+    private boolean favorites = false;
+
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
@@ -70,8 +80,10 @@ public class HistoryFragment extends Fragment
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setHasOptionsMenu(true);
+
+        Bundle args = getArguments();
+        favorites = args.getBoolean(ARG_FAVORITES, false);
 
         // load list from the database
         try {
@@ -81,7 +93,8 @@ public class HistoryFragment extends Fragment
             );
             mAdapter = new TranslationHistoryAdapter(
                     getActivity(),
-                    arrayAdapter
+                    arrayAdapter,
+                    favorites
             );
         } catch (SQLException ex) {
             Log.e(TAG, "onCreate(): failed to create endless adapter", ex);
@@ -199,6 +212,14 @@ public class HistoryFragment extends Fragment
         return false;
     }
 
+    public static Fragment newInstance(boolean favorites) {
+        Fragment fragment = new HistoryFragment();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_FAVORITES, favorites);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -242,15 +263,49 @@ public class HistoryFragment extends Fragment
             srcLang.setText(capitalizeString(historyItem.getSourceLang()));
             targetLang.setText(capitalizeString(historyItem.getTargetLang()));
 
+            favButton.setOnTouchListener(TouchEffect.FADE_ON_TOUCH);
             favButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Toast.makeText(getContext(), "Item " + historyItem.getId()
-                            + " was added to favorites.", Toast.LENGTH_SHORT).show();
+                    onFavButtonClicked(historyItem);
                 }
             });
 
+            if (historyItem.isFavorite()) {
+                favButton.setBackgroundResource(android.R.drawable.btn_star_big_on);
+            } else {
+                favButton.setBackgroundResource(android.R.drawable.btn_star_big_off);
+            }
+
             return view;
+        }
+
+        private void onFavButtonClicked(final TranslationHistoryEntity historyItem) {
+            Task.callInBackground(new Callable<Object>() {
+                @Override
+                public Object call() throws Exception {
+                    historyItem.setFavorite(!historyItem.getFavorite());
+                    DatabaseHelperFactory.getHelper()
+                            .getTranslationHistoryDao()
+                            .update(historyItem);
+                    return historyItem;
+                }
+            }).continueWith(new Continuation<Object, Object>() {
+                @Override
+                public Object then(Task<Object> task) throws Exception {
+                    if (task.isFaulted()) {
+                        Toast.makeText(getContext(), "Can't update. Try to refresh the list.", Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "onFavButtonClicked() failed", task.getError());
+                    } else if (task.isCompleted()) {
+//                        if (favorites) {
+//                            mAdapter.refresh();
+//                        } else {
+                            mListView.invalidateViews();
+//                        }
+                    }
+                    return null;
+                }
+            }, Task.UI_THREAD_EXECUTOR);
         }
 
         String capitalizeString(String s) {

@@ -125,6 +125,42 @@ public class TranslationHistoryHelper {
         }
     }
 
+    public List<TranslationHistoryEntity> getFavoriteTranslations(String query, int offset, int limit) throws SQLException {
+        QueryBuilder<TranslationHistoryEntity, Long> qb = historyDao.queryBuilder()
+                .orderBy("last_accessed", false)
+                .orderBy("src_lang", true)
+                .orderBy("target_lang", true)
+                .offset((long) offset)
+                .limit((long) limit);
+
+        Where where = qb.where();
+        where.and(
+                where.eq("is_favorite", true),
+                where.or(
+                        where.like("src_text", new SelectArg("%" + query + "%")),
+                        where.like("translation", new SelectArg("%" + query + "%"))
+                )
+        );
+        synchronized (helper) {
+            return historyDao.query(qb.prepare());
+        }
+    }
+
+    public List<TranslationHistoryEntity> getFavoriteTranslations(int offset, int limit) throws SQLException {
+        synchronized (helper) {
+            return historyDao.query(
+                    historyDao.queryBuilder()
+                            .orderBy("last_accessed", false)
+                            .orderBy("src_lang", true)
+                            .orderBy("target_lang", true)
+                            .offset((long) offset)
+                            .limit((long) limit)
+                            .where().eq("is_favorite", true)
+                            .prepare()
+            );
+        }
+    }
+
     public List<TranslationHistoryEntity> getLastTranslations(String query, int offset, int limit) throws SQLException {
         synchronized (helper) {
             return historyDao.query(

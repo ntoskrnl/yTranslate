@@ -1,9 +1,11 @@
 package com.cardiomood.ytranslate.fragments;
 
+import android.app.Activity;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -16,7 +18,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.cardiomood.ytranslate.MainActivity;
 import com.cardiomood.ytranslate.R;
+import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
 import com.cardiomood.ytranslate.provider.Language;
 import com.cardiomood.ytranslate.provider.TranslateProvider;
 import com.cardiomood.ytranslate.provider.TranslatedText;
@@ -27,6 +31,7 @@ import com.cardiomood.ytranslate.ui.ClickableWordsHelper;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -46,6 +51,12 @@ public class TranslationFragment extends Fragment {
     private static final String TAG = TranslationFragment.class.getSimpleName();
 
     private static final String API_KEY = "trnsl.1.1.20141126T151929Z.2028746c57ef2cb5.29f3fed6a7b663d81c68ca53a58f5eb5e0077b5b";
+
+    private static final String ARG_FROM_HISTORY = "from_history";
+    private static final String ARG_SRC_LANG = "src_lang";
+    private static final String ARG_TARGET_LANG = "target_lang";
+    private static final String ARG_SRC_TEXT = "src_text";
+    private static final String ARG_TRANSLATION = "translation";
 
     @InjectView(R.id.src_lang)
     TextView sourceLanguageView;
@@ -71,7 +82,27 @@ public class TranslationFragment extends Fragment {
     TranslationHistoryHelper historyHelper;
 
     Map<String, Language> supportedLanguages = Collections.emptyMap();
-    Map<Language, List<Language>> supportedDirections = Collections.emptyMap();
+
+    public static final TranslationFragment newInstance() {
+        return new TranslationFragment();
+    }
+
+    public static final TranslationFragment newInstance(TranslationHistoryEntity historyItem) {
+        TranslationFragment fragment = new TranslationFragment();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_FROM_HISTORY, true);
+        args.putString(ARG_SRC_LANG, historyItem.getSourceLang());
+        args.putString(ARG_TARGET_LANG, historyItem.getTargetLang());
+        args.putString(ARG_SRC_TEXT, historyItem.getSourceText());
+        args.putStringArrayList(ARG_TRANSLATION, new ArrayList<>(Arrays.asList(historyItem.getTranslation())));
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -210,6 +241,21 @@ public class TranslationFragment extends Fragment {
             }
         });
 
+//        sourceText.setOnKeyListener(new View.OnKeyListener() {
+//            @Override
+//            public boolean onKey(View v, int keyCode, KeyEvent event) {
+//                suppressBackButton(!sourceText.getText().toString().isEmpty());
+//                return false;
+//            }
+//        });
+//
+//        sourceText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+//            @Override
+//            public void onFocusChange(View v, boolean hasFocus) {
+//                suppressBackButton(!sourceText.getText().toString().isEmpty());
+//            }
+//        });
+
         setTargetLanguage(new Language("en", "English", "en"));
 
         return view;
@@ -218,7 +264,6 @@ public class TranslationFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         initLanguages();
 
         // TODO: decouple from history helper!
@@ -232,41 +277,42 @@ public class TranslationFragment extends Fragment {
         // TODO: implement save/restore instance state to provide better UX
     }
 
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+    }
+
     private void initLanguages() {
         Toast.makeText(getActivity(), "Loading...", Toast.LENGTH_SHORT).show();
         String uiLanguage = Locale.getDefault().getLanguage();
-        translateProvider.getSupportedLanguagesAsync(Locale.getDefault().getLanguage())
+        translateProvider.getSupportedLanguagesAsync(uiLanguage)
                 .continueWith(new Continuation<Map<String, Language>, Object>() {
                     @Override
                     public Object then(Task<Map<String, Language>> task) throws Exception {
                         if (task.isCompleted()) {
                             supportedLanguages = task.getResult();
+                            Bundle args = getArguments();
+                            if (args != null && args.getBoolean(ARG_FROM_HISTORY, false)) {
+                                sourceText.setText(args.getString(ARG_SRC_TEXT));
+                                onTranslationReady(
+                                        new TranslatedText(
+                                                args.getString(ARG_SRC_LANG),
+                                                args.getString(ARG_TARGET_LANG),
+                                                args.getStringArrayList(ARG_TRANSLATION)
+                                        ));
+                            }
                         } else {
                             // handle error
                         }
                         return null;
                     }
                 }, Task.UI_THREAD_EXECUTOR);
-        translateProvider.getSupportedDirectionsAsync(uiLanguage)
-                .continueWith(new Continuation<Map<Language, List<Language>>, Object>() {
-                    @Override
-                    public Object then(Task<Map<Language, List<Language>>> task) throws Exception {
-                        if (task.isCompleted()) {
-                            onSupportedDirectionsLoaded(task.getResult());
-                        } else {
-                            // handle error
-                            Log.w(TAG, "getSupportedDirectionsAsync() failed", task.getError());
-                        }
-                        return null;
-                    }
-                }, Task.UI_THREAD_EXECUTOR);
     }
-
-    private void onSupportedDirectionsLoaded(Map<Language, List<Language>> directions) {
-        supportedDirections = directions;
-
-    }
-
     private void translate() {
         final String text = sourceText.getText().toString().trim();
         final Language srcLang = selectedSourceLanguage;
@@ -372,6 +418,14 @@ public class TranslationFragment extends Fragment {
             swapButton.setEnabled(false);
         } else {
             swapButton.setEnabled(true);
+        }
+    }
+
+    private void suppressBackButton(boolean suppress) {
+        FragmentActivity activity = getActivity();
+        if (activity instanceof MainActivity) {
+            MainActivity mainActivity = (MainActivity) activity;
+            mainActivity.suppressBackButton(suppress);
         }
     }
 
