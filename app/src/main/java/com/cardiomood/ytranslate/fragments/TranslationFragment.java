@@ -25,10 +25,9 @@ import com.cardiomood.ytranslate.provider.Language;
 import com.cardiomood.ytranslate.provider.TranslatedText;
 import com.cardiomood.ytranslate.provider.YandexTranslateProvider;
 import com.cardiomood.ytranslate.tools.HistoryAwareTranslateProvider;
-import com.cardiomood.ytranslate.tools.TranslationHistoryHelper;
+import com.cardiomood.ytranslate.tools.ReachabilityTest;
 import com.cardiomood.ytranslate.ui.ClickableWordsHelper;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -42,7 +41,6 @@ import bolts.Continuation;
 import bolts.Task;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
-import translate.provider.TranslateProvider;
 
 /**
  * Created by Anton Danshin on 28/11/14.
@@ -79,8 +77,7 @@ public class TranslationFragment extends Fragment {
     Language selectedSourceLanguage;
     Language selectedTargetLanguage;
 
-    TranslateProvider translateProvider = new HistoryAwareTranslateProvider(new YandexTranslateProvider(API_KEY));
-    TranslationHistoryHelper historyHelper;
+    HistoryAwareTranslateProvider translateProvider;
 
     Map<String, Language> supportedLanguages = Collections.emptyMap();
 
@@ -95,6 +92,7 @@ public class TranslationFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mHandler = new Handler();
+        translateProvider = new HistoryAwareTranslateProvider(new YandexTranslateProvider(API_KEY));
     }
 
     @Override
@@ -157,6 +155,7 @@ public class TranslationFragment extends Fragment {
         translateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                checkInternetConnection();
                 translate();
             }
         });
@@ -165,10 +164,7 @@ public class TranslationFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 String targetLang = selectedTargetLanguage == null ? null : selectedTargetLanguage.getLanguage();
-                if (historyHelper == null) {
-                    return;
-                }
-                historyHelper.getRecentSourceLanguagesAsync(targetLang, 4)
+                translateProvider.getRecentSourceLanguagesAsync(targetLang, 4)
                         .continueWith(new Continuation<Map<String, Date>, Object>() {
                             @Override
                             public Object then(Task<Map<String, Date>> task) throws Exception {
@@ -207,10 +203,7 @@ public class TranslationFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 String srcLang = selectedSourceLanguage == null ? null : selectedSourceLanguage.getLanguage();
-                if (historyHelper == null) {
-                    return;
-                }
-                historyHelper.getRecentTargetLanguagesAsync(srcLang, 4)
+                translateProvider.getRecentTargetLanguagesAsync(srcLang, 4)
                         .continueWith(new Continuation<Map<String, Date>, Object>() {
                             @Override
                             public Object then(Task<Map<String, Date>> task) throws Exception {
@@ -284,17 +277,10 @@ public class TranslationFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        initLanguages();
+        initLanguages(savedInstanceState);
 
-        // TODO: decouple from history helper!
-        try {
-            historyHelper = new TranslationHistoryHelper();
-        } catch (SQLException ex) {
-            Toast.makeText(getActivity(), "Failed to initialize translation history", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "onViewCreated(): failed to create TranslationHistoryHelper", ex);
-        }
-
-        // TODO: implement save/restore instance state to provide better UX
+        checkInternetConnection();
+        // TODO: there is a small bug in save/restore. Revise later!
     }
 
     @Override
@@ -307,8 +293,7 @@ public class TranslationFragment extends Fragment {
         super.onDetach();
     }
 
-    private void initLanguages() {
-        Toast.makeText(getActivity(), "Loading...", Toast.LENGTH_SHORT).show();
+    private void initLanguages(@Nullable Bundle savedInstanceState) {
         String uiLanguage = Locale.getDefault().getLanguage();
         translateProvider.getSupportedLanguagesAsync(uiLanguage)
                 .continueWith(new Continuation<Map<String, Language>, Object>() {
@@ -326,9 +311,17 @@ public class TranslationFragment extends Fragment {
                                                 args.getStringArrayList(ARG_TRANSLATION)
                                         ));
                                 args.clear();
+                            } else if (args == null || args.isEmpty()) {
+                                // TODO: load last used languages from prefs
+
                             }
                         } else {
                             // handle error
+                            if (getActivity() != null) {
+                                Log.w(TAG, "initLanguages() failed", task.getError());
+                                Toast.makeText(getActivity(), "Failed to load languages. " +
+                                        "Check your internet connection.", Toast.LENGTH_SHORT).show();
+                            }
                         }
                         return null;
                     }
@@ -343,6 +336,7 @@ public class TranslationFragment extends Fragment {
     }
 
     private void translate() {
+        // cancel any pending task
         cancelDeferredTranslate();
 
         final String text = sourceText.getText().toString().trim();
@@ -361,8 +355,8 @@ public class TranslationFragment extends Fragment {
                         if (task.isFaulted()) {
                             // handle error
                             Log.e(TAG, "translate() failed with exception", task.getError());
-                            Toast.makeText(getActivity(), "Translation failed. Check Internet connection.",
-                                    Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(getActivity(), "Translation failed. Check Internet connection.",
+//                                    Toast.LENGTH_SHORT).show();
                         } else if (task.isCompleted()) {
                             onTranslationReady(task.getResult());
                         }
@@ -474,12 +468,32 @@ public class TranslationFragment extends Fragment {
         }
     }
 
+    /**
+     * If there is a scheduled translate timer task - cancel it!.
+     */
     private void cancelDeferredTranslate() {
         if (deferredTranslateTask != null) {
             deferredTranslateTask.cancel();
             deferredTranslateTask = null;
             mTimer.purge();
         }
+    }
+
+    private void checkInternetConnection() {
+        new ReachabilityTest(getActivity(), "api.yandex.ru", 80, new ReachabilityTest.Callback() {
+            @Override
+            public void onReachabilityTestPassed() {
+                // ok!
+            }
+
+            @Override
+            public void onReachabilityTestFailed() {
+                if (getActivity() != null) {
+                    Toast.makeText(getActivity(), "Online translation service is not available.",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        }).execute();
     }
 
 }

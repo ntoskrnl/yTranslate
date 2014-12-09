@@ -10,11 +10,14 @@ import com.cardiomood.ytranslate.provider.TranslatedText;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import bolts.Task;
 import translate.provider.TranslateProvider;
 import translate.provider.TranslateProviderWrapper;
 
@@ -179,6 +182,26 @@ public class HistoryAwareTranslateProvider extends TranslateProviderWrapper {
         this.strategy = strategy;
     }
 
+    public Task<Map<String, Date>> getRecentSourceLanguagesAsync(String targetLang, int limit) {
+        if (historyEnabled && mHistoryHelper != null) {
+            return mHistoryHelper.getRecentSourceLanguagesAsync(targetLang, limit);
+        } else {
+            Task<Map<String, Date>>.TaskCompletionSource task = Task.create();
+            task.setResult(Collections.EMPTY_MAP);
+            return task.getTask();
+        }
+    }
+
+    public Task<Map<String, Date>> getRecentTargetLanguagesAsync(String srcLang, int limit) {
+            if (historyEnabled && mHistoryHelper != null) {
+                return mHistoryHelper.getRecentTargetLanguagesAsync(srcLang, limit);
+            } else {
+                Task<Map<String, Date>>.TaskCompletionSource task = Task.create();
+                task.setResult(Collections.EMPTY_MAP);
+                return task.getTask();
+            }
+    }
+
     protected String getTranslation(TranslatedText translatedText) {
         List<String> data = translatedText.getText();
         StringBuilder translation = new StringBuilder();
@@ -243,3 +266,4 @@ public class HistoryAwareTranslateProvider extends TranslateProviderWrapper {
         }
     }
 }
+

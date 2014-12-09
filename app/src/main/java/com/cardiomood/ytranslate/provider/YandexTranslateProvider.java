@@ -23,14 +23,13 @@ public class YandexTranslateProvider extends TranslateProvider {
 
     private static final TranslateApi.TextFormat FORMAT = TranslateApi.TextFormat.PLAIN;
 
-    private String apiKey;
+    private static final String[] SUPPORTED_UI_LANGS = new String[] {"en", "ru", "uk", "tr"};
+
     private YandexTranslate service;
 
     public YandexTranslateProvider(String apiKey) {
-        this.apiKey = apiKey;
-
-        // TODO: provide sane ErrorHandler in order to wrap Retrofit exceptions
-        this.service = new YandexTranslate(apiKey);
+        // TODO: provide a sane ErrorHandler in order to wrap Retrofit exceptions
+        this.service = new YandexTranslate(apiKey /**, myErrorHandler */);
     }
 
     /**
@@ -62,6 +61,7 @@ public class YandexTranslateProvider extends TranslateProvider {
      */
     @Override
     public Map<String, Language> getSupportedLanguages(String uiLanguage) {
+        uiLanguage = getValidUiLang(uiLanguage);
         TranslationDirections response = service.getLangs(uiLanguage);
         Map<String, String> langs = response.getLangs();
         Map<String, Language> result = new HashMap<>();
@@ -76,6 +76,7 @@ public class YandexTranslateProvider extends TranslateProvider {
      */
     @Override
     public Map<Language, List<Language>> getSupportedDirections(String uiLanguage) {
+        uiLanguage = getValidUiLang(uiLanguage);
         TranslationDirections response = service.getLangs(uiLanguage);
         List<String> dirs = response.getDirs();
         Map<String, String> langs = response.getLangs();
@@ -92,5 +93,17 @@ public class YandexTranslateProvider extends TranslateProvider {
             list.add(new Language(langB, langs.get(langB), uiLanguage));
         }
         return result;
+    }
+
+    private String getValidUiLang(String uiLang) {
+        if (uiLang == null) {
+            return SUPPORTED_UI_LANGS[0];
+        }
+        for (String lang: SUPPORTED_UI_LANGS) {
+            if (lang.equals(uiLang)) {
+                return lang;
+            }
+        }
+        return SUPPORTED_UI_LANGS[0];
     }
 }

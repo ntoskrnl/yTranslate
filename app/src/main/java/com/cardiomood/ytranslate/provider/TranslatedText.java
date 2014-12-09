@@ -6,13 +6,15 @@ import java.util.List;
  * Holds the result of translation.
  * Can be subclassed to alter functionality or add more features.
  * <br/>
- *
  * Created by Anton Danshin on 28/11/14.
  */
 public class TranslatedText {
 
+    /** Source language code */
     private String sourceLanguage;
+    /** Target language code */
     private String targetLanguage;
+    /** Translated text **/
     private List<String> text;
 
     public TranslatedText(String sourceLanguage, String targetLanguage, List<String> text) {
