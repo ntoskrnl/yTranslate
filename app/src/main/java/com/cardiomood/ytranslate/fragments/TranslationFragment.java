@@ -269,8 +269,6 @@ public class TranslationFragment extends Fragment {
             }
         });
 
-        setTargetLanguage(new Language("en", "English", "en"));
-
         return view;
     }
 
@@ -313,14 +311,14 @@ public class TranslationFragment extends Fragment {
                                 args.clear();
                             } else if (args == null || args.isEmpty()) {
                                 // TODO: load last used languages from prefs
-
+                                setTargetLanguage(new Language("en", "English", "en"));
                             }
                         } else {
                             // handle error
                             if (getActivity() != null) {
                                 Log.w(TAG, "initLanguages() failed", task.getError());
                                 Toast.makeText(getActivity(), "Failed to load languages. " +
-                                        "Check your internet connection.", Toast.LENGTH_SHORT).show();
+                                        "Check your internet connection and restart app.", Toast.LENGTH_SHORT).show();
                             }
                         }
                         return null;
