@@ -11,13 +11,13 @@ import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 
 import com.cardiomood.ytranslate.R;
-import com.cardiomood.ytranslate.provider.Language;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import translate.provider.Language;
 
 /**
  * Created by Anton Danshin on 01/12/14.

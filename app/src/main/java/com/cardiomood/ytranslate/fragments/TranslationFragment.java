@@ -21,9 +21,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.cardiomood.ytranslate.R;
-import com.cardiomood.ytranslate.provider.Language;
-import com.cardiomood.ytranslate.provider.TranslatedText;
-import com.cardiomood.ytranslate.provider.YandexTranslateProvider;
 import com.cardiomood.ytranslate.tools.HistoryAwareTranslateProvider;
 import com.cardiomood.ytranslate.tools.ReachabilityTest;
 import com.cardiomood.ytranslate.ui.ClickableWordsHelper;
@@ -41,6 +38,9 @@ import bolts.Continuation;
 import bolts.Task;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import translate.api.yandex.translate.YandexTranslateProvider;
+import translate.provider.Language;
+import translate.provider.TranslatedText;
 
 /**
  * Created by Anton Danshin on 28/11/14.

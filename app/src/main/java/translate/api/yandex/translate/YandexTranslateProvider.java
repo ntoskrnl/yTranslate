@@ -1,16 +1,13 @@
-package com.cardiomood.ytranslate.provider;
+package translate.api.yandex.translate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import translate.api.yandex.translate.DetectionResult;
-import translate.api.yandex.translate.TranslateApi;
-import translate.api.yandex.translate.TranslationDirections;
-import translate.api.yandex.translate.TranslationResult;
-import translate.api.yandex.translate.YandexTranslate;
+import translate.provider.Language;
 import translate.provider.TranslateProvider;
+import translate.provider.TranslatedText;
 
 /**
  * An implementation of {@link translate.provider.TranslateProvider}

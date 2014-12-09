@@ -1,4 +1,4 @@
-package com.cardiomood.ytranslate.provider;
+package translate.provider;
 
 import android.os.Parcel;
 import android.os.Parcelable;

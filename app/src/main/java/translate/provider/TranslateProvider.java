@@ -1,8 +1,5 @@
 package translate.provider;
 
-import com.cardiomood.ytranslate.provider.Language;
-import com.cardiomood.ytranslate.provider.TranslatedText;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;

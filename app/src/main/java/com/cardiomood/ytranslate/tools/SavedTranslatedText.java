@@ -1,9 +1,10 @@
 package com.cardiomood.ytranslate.tools;
 
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
-import com.cardiomood.ytranslate.provider.TranslatedText;
 
 import java.util.Arrays;
+
+import translate.provider.TranslatedText;
 
 /**
  * Created by Anton Danshin on 05/12/14.
