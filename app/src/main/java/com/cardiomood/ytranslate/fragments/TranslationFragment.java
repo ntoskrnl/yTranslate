@@ -163,6 +163,7 @@ public class TranslationFragment extends Fragment {
         sourceLanguageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                checkInternetConnection();
                 String targetLang = selectedTargetLanguage == null ? null : selectedTargetLanguage.getLanguage();
                 translateProvider.getRecentSourceLanguagesAsync(targetLang, 4)
                         .continueWith(new Continuation<Map<String, Date>, Object>() {
@@ -202,6 +203,7 @@ public class TranslationFragment extends Fragment {
         targetLanguageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                checkInternetConnection();
                 String srcLang = selectedSourceLanguage == null ? null : selectedSourceLanguage.getLanguage();
                 translateProvider.getRecentTargetLanguagesAsync(srcLang, 4)
                         .continueWith(new Continuation<Map<String, Date>, Object>() {
@@ -238,6 +240,7 @@ public class TranslationFragment extends Fragment {
         swapButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                checkInternetConnection();
                 Language src = selectedSourceLanguage;
                 String targetText = translatedText.getText().toString();
                 setSourceLanguage(selectedTargetLanguage);
@@ -407,6 +410,7 @@ public class TranslationFragment extends Fragment {
     }
 
     private void setSourceLanguage(Language lang) {
+        sourceLanguageView.setText(lang == null ? "Detect Language" : lang.toString());
         if (selectedSourceLanguage == null && lang == null) {
             // nothing changed
             return;
@@ -437,6 +441,7 @@ public class TranslationFragment extends Fragment {
     }
 
     private void setTargetLanguage(Language lang) {
+        targetLanguageView.setText(lang == null ? "Detect Language" : lang.toString());
         if (lang == null) {
             return;
         }
@@ -482,10 +487,16 @@ public class TranslationFragment extends Fragment {
             @Override
             public void onReachabilityTestPassed() {
                 // ok!
+                if (translateProvider != null) {
+                    translateProvider.setStrategy(HistoryAwareTranslateProvider.ONLINE_FIRST);
+                }
             }
 
             @Override
             public void onReachabilityTestFailed() {
+                if (translateProvider != null) {
+                    translateProvider.setStrategy(HistoryAwareTranslateProvider.HISTORY_FIRST);
+                }
                 if (getActivity() != null) {
                     Toast.makeText(getActivity(), "Online translation service is not available.",
                             Toast.LENGTH_SHORT).show();

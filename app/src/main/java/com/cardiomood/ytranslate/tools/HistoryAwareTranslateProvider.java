@@ -71,6 +71,18 @@ public class HistoryAwareTranslateProvider extends TranslateProviderWrapper {
         }
     }
 
+    /**
+     * Translate the provided text in to the target language.
+     *
+     * @param text text to translate
+     * @param targetLanguage the target language (one of the objects returned by
+     *                       {@link TranslateProvider#getSupportedLanguages(String)}).
+     * @param sourceLanguage the source language. If null the service will usually attempt
+     *                       to detect the language (but this might depend on implementation).
+     * @return Result of translation containing a translated text encapsulated into an instance of
+     *         {@link SavedTranslatedText} if the text when the text was saved or found in local
+     *         history, or {@link translate.provider.TranslatedText} when history is disabled.
+     */
     @Override
     public TranslatedText translate(String text, Language targetLanguage, Language sourceLanguage) {
         TranslatedText result = null;
@@ -96,6 +108,7 @@ public class HistoryAwareTranslateProvider extends TranslateProviderWrapper {
                             getTranslateProvider().getClass().getName()
                     );
                     Log.d(TAG, "translate(): history item has been saved, ID=" + entity.getId());
+                    result = new SavedTranslatedText(entity);
                 } catch (SQLException ex) {
                     Log.w(TAG, "translate(): translation hasn't been saved due to SQL exception.", ex);
                 }

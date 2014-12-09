@@ -25,7 +25,7 @@ public abstract class TranslateProvider {
     /**
      * Translate the provided text in to the target language.
      *
-     * @param text test to translate
+     * @param text text to translate
      * @param targetLanguage the target language (one of the objects returned by
      *                       {@link TranslateProvider#getSupportedLanguages(String)}).
      * @param sourceLanguage the source language. If null the service will usually attempt
