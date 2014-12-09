@@ -22,7 +22,6 @@ import android.widget.Toast;
 
 import com.cardiomood.ytranslate.R;
 import com.cardiomood.ytranslate.provider.Language;
-import com.cardiomood.ytranslate.provider.TranslateProvider;
 import com.cardiomood.ytranslate.provider.TranslatedText;
 import com.cardiomood.ytranslate.provider.YandexTranslateProvider;
 import com.cardiomood.ytranslate.tools.HistoryAwareTranslateProvider;
@@ -43,6 +42,7 @@ import bolts.Continuation;
 import bolts.Task;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import translate.provider.TranslateProvider;
 
 /**
  * Created by Anton Danshin on 28/11/14.

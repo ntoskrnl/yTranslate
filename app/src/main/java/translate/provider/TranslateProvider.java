@@ -1,6 +1,7 @@
-package com.cardiomood.ytranslate.provider;
+package translate.provider;
 
-import android.util.Log;
+import com.cardiomood.ytranslate.provider.Language;
+import com.cardiomood.ytranslate.provider.TranslatedText;
 
 import java.util.List;
 import java.util.Map;

@@ -1,7 +1,6 @@
-package com.cardiomood.ytranslate.tools;
+package translate.provider;
 
 import com.cardiomood.ytranslate.provider.Language;
-import com.cardiomood.ytranslate.provider.TranslateProvider;
 import com.cardiomood.ytranslate.provider.TranslatedText;
 
 import java.util.List;
@@ -21,22 +20,37 @@ public class TranslateProviderWrapper extends TranslateProvider {
         this.mProvider = provider;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public TranslatedText translate(String text, Language targetLanguage, Language sourceLanguage) {
         return mProvider.translate(text, targetLanguage, sourceLanguage);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Map<String, Language> getSupportedLanguages(String uiLanguage) {
         return mProvider.getSupportedLanguages(uiLanguage);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Map<Language, List<Language>> getSupportedDirections(String uiLanguage) {
         return mProvider.getSupportedDirections(uiLanguage);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public String detect(String text) {
         return mProvider.detect(text);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public TranslateProvider getTranslateProvider() {
         return mProvider;
     }

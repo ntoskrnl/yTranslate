@@ -10,9 +10,10 @@ import translate.api.yandex.translate.TranslateApi;
 import translate.api.yandex.translate.TranslationDirections;
 import translate.api.yandex.translate.TranslationResult;
 import translate.api.yandex.translate.YandexTranslate;
+import translate.provider.TranslateProvider;
 
 /**
- * An implementation of {@link com.cardiomood.ytranslate.provider.TranslateProvider}
+ * An implementation of {@link translate.provider.TranslateProvider}
  * that works with Yandex.Translate API.
  * <br/>
  *

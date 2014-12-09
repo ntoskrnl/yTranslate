@@ -6,7 +6,6 @@ import com.cardiomood.ytranslate.db.DatabaseHelperFactory;
 import com.cardiomood.ytranslate.db.entity.LanguageEntity;
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
 import com.cardiomood.ytranslate.provider.Language;
-import com.cardiomood.ytranslate.provider.TranslateProvider;
 import com.cardiomood.ytranslate.provider.TranslatedText;
 
 import java.sql.SQLException;
@@ -15,6 +14,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+
+import translate.provider.TranslateProvider;
+import translate.provider.TranslateProviderWrapper;
 
 /**
  * Encapsulates translation functionality and uses history database as cache.
