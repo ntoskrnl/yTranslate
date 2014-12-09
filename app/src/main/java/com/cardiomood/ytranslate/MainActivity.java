@@ -1,6 +1,5 @@
 package com.cardiomood.ytranslate;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -16,6 +15,9 @@ import android.view.ViewGroup;
 import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
 import com.cardiomood.ytranslate.fragments.HistoryFragment;
 import com.cardiomood.ytranslate.fragments.TranslationFragment;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class MainActivity extends ActionBarActivity
@@ -47,16 +49,41 @@ public class MainActivity extends ActionBarActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+
+        if (savedInstanceState != null) {
+            //Restore the fragment's instance
+            Fragment translateFragment = getSupportFragmentManager()
+                    .getFragment(savedInstanceState, "translateFragment");
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, translateFragment)
+                    .commit();
+            PlaceholderFragment.translationFragment = translateFragment;
+        }
     }
 
     @Override
-    public void onNavigationDrawerItemSelected(int position) {
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        Fragment translateFragment = getSupportFragmentManager().findFragmentByTag("content_fragment");
+        //Save the fragment's instance
+        if (translateFragment instanceof TranslationFragment) {
+            getSupportFragmentManager().putFragment(outState, "translateFragment", translateFragment);
+        }
+    }
+
+    @Override
+    public void onNavigationDrawerItemSelected(int position, boolean fromSavedState) {
         // update the main content by replacing fragments
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
-                .commit();
-        updateTitle(position + 1);
+        if (!fromSavedState) {
+            Fragment fragment = PlaceholderFragment.newInstance(position + 1);
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, fragment, "content_fragment")
+                    .commit();
+            updateTitle(position + 1);
+        }
     }
 
     public void updateTitle(int number) {
@@ -106,7 +133,7 @@ public class MainActivity extends ActionBarActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            mNavigationDrawerFragment.selectItem(3);
+            mNavigationDrawerFragment.selectItem(4, false);
             return true;
         }
 
@@ -115,13 +142,15 @@ public class MainActivity extends ActionBarActivity
 
     @Override
     public void onHistoryItemSelected(TranslationHistoryEntity historyItem) {
-        mNavigationDrawerFragment.selectItem(1);
-        Fragment fragment = TranslationFragment.newInstance(historyItem);
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, fragment)
-                .commit();
-        updateTitle(1);
+        Bundle args = new Bundle();
+        args.putBoolean(TranslationFragment.ARG_FROM_HISTORY, true);
+        args.putString(TranslationFragment.ARG_SRC_LANG, historyItem.getSourceLang());
+        args.putString(TranslationFragment.ARG_TARGET_LANG, historyItem.getTargetLang());
+        args.putString(TranslationFragment.ARG_SRC_TEXT, historyItem.getSourceText());
+        args.putStringArrayList(TranslationFragment.ARG_TRANSLATION, new ArrayList<>(Arrays.asList(historyItem.getTranslation())));
+        PlaceholderFragment.translationFragment.setArguments(args);
+
+        mNavigationDrawerFragment.selectItem(0, false);
     }
 
     @Override
@@ -145,13 +174,18 @@ public class MainActivity extends ActionBarActivity
          */
         private static final String ARG_SECTION_NUMBER = "section_number";
 
+        private static Fragment translationFragment = null;
+
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
         public static Fragment newInstance(int sectionNumber) {
             if (sectionNumber == 1) {
-                return new TranslationFragment();
+                if (translationFragment == null) {
+                    translationFragment = new TranslationFragment();
+                }
+                return translationFragment;
             }
             if (sectionNumber == 2) {
                 return HistoryFragment.newInstance(true);
@@ -177,11 +211,6 @@ public class MainActivity extends ActionBarActivity
             return rootView;
         }
 
-        @Override
-        public void onAttach(Activity activity) {
-            super.onAttach(activity);
-
-        }
     }
 
 }

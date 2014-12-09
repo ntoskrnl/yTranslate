@@ -5,11 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.yandex.translate.DetectionResult;
-import ru.yandex.translate.TranslateApi;
-import ru.yandex.translate.TranslationDirections;
-import ru.yandex.translate.TranslationResult;
-import ru.yandex.translate.YandexTranslate;
+import translate.api.yandex.translate.DetectionResult;
+import translate.api.yandex.translate.TranslateApi;
+import translate.api.yandex.translate.TranslationDirections;
+import translate.api.yandex.translate.TranslationResult;
+import translate.api.yandex.translate.YandexTranslate;
 
 /**
  * An implementation of {@link com.cardiomood.ytranslate.provider.TranslateProvider}

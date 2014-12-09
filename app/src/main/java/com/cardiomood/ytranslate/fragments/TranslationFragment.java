@@ -3,11 +3,13 @@ package com.cardiomood.ytranslate.fragments;
 import android.app.Activity;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -18,9 +20,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.cardiomood.ytranslate.MainActivity;
 import com.cardiomood.ytranslate.R;
-import com.cardiomood.ytranslate.db.entity.TranslationHistoryEntity;
 import com.cardiomood.ytranslate.provider.Language;
 import com.cardiomood.ytranslate.provider.TranslateProvider;
 import com.cardiomood.ytranslate.provider.TranslatedText;
@@ -31,12 +31,13 @@ import com.cardiomood.ytranslate.ui.ClickableWordsHelper;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import bolts.Continuation;
 import bolts.Task;
@@ -52,11 +53,11 @@ public class TranslationFragment extends Fragment {
 
     private static final String API_KEY = "trnsl.1.1.20141126T151929Z.2028746c57ef2cb5.29f3fed6a7b663d81c68ca53a58f5eb5e0077b5b";
 
-    private static final String ARG_FROM_HISTORY = "from_history";
-    private static final String ARG_SRC_LANG = "src_lang";
-    private static final String ARG_TARGET_LANG = "target_lang";
-    private static final String ARG_SRC_TEXT = "src_text";
-    private static final String ARG_TRANSLATION = "translation";
+    public static final String ARG_FROM_HISTORY = "from_history";
+    public static final String ARG_SRC_LANG = "src_lang";
+    public static final String ARG_TARGET_LANG = "target_lang";
+    public static final String ARG_SRC_TEXT = "src_text";
+    public static final String ARG_TRANSLATION = "translation";
 
     @InjectView(R.id.src_lang)
     TextView sourceLanguageView;
@@ -83,25 +84,17 @@ public class TranslationFragment extends Fragment {
 
     Map<String, Language> supportedLanguages = Collections.emptyMap();
 
-    public static final TranslationFragment newInstance() {
-        return new TranslationFragment();
-    }
+    private Timer mTimer = new Timer("typing_timer");
+    private TimerTask deferredTranslateTask = null;
+    private Handler mHandler;
 
-    public static final TranslationFragment newInstance(TranslationHistoryEntity historyItem) {
-        TranslationFragment fragment = new TranslationFragment();
-        Bundle args = new Bundle();
-        args.putBoolean(ARG_FROM_HISTORY, true);
-        args.putString(ARG_SRC_LANG, historyItem.getSourceLang());
-        args.putString(ARG_TARGET_LANG, historyItem.getTargetLang());
-        args.putString(ARG_SRC_TEXT, historyItem.getSourceText());
-        args.putStringArrayList(ARG_TRANSLATION, new ArrayList<>(Arrays.asList(historyItem.getTranslation())));
-        fragment.setArguments(args);
-        return fragment;
+    public TranslationFragment() {
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mHandler = new Handler();
     }
 
     @Override
@@ -113,6 +106,27 @@ public class TranslationFragment extends Fragment {
         } else {
             ((ActionBarActivity) getActivity()).getSupportActionBar().show();
         }
+
+        if (savedInstanceState != null) {
+            //Restore the fragment's state
+            setSourceLanguage((Language) savedInstanceState.getParcelable("src_lang"));
+            setTargetLanguage((Language) savedInstanceState.getParcelable("target_lang"));
+            sourceText.setText(savedInstanceState.getString("src_text"));
+            translatedText.setText(savedInstanceState.getString("translation"));
+            translatedFrom.setText(savedInstanceState.getString("translated_from"));
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        // Save the fragment's state
+        outState.putParcelable("src_lang", selectedSourceLanguage);
+        outState.putParcelable("target_lang", selectedTargetLanguage);
+        outState.putString("src_text", sourceText.getText().toString());
+        outState.putString("translation", translatedText.getText().toString());
+        outState.putString("translated_from", translatedFrom.getText().toString());
     }
 
     @Override
@@ -241,20 +255,26 @@ public class TranslationFragment extends Fragment {
             }
         });
 
-//        sourceText.setOnKeyListener(new View.OnKeyListener() {
-//            @Override
-//            public boolean onKey(View v, int keyCode, KeyEvent event) {
-//                suppressBackButton(!sourceText.getText().toString().isEmpty());
-//                return false;
-//            }
-//        });
-//
-//        sourceText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//            @Override
-//            public void onFocusChange(View v, boolean hasFocus) {
-//                suppressBackButton(!sourceText.getText().toString().isEmpty());
-//            }
-//        });
+        sourceText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (!s.toString().isEmpty())
+                    deferredTranslate();
+                if (s.toString().trim().isEmpty()) {
+                    clear();
+                }
+            }
+        });
 
         setTargetLanguage(new Language("en", "English", "en"));
 
@@ -305,6 +325,7 @@ public class TranslationFragment extends Fragment {
                                                 args.getString(ARG_TARGET_LANG),
                                                 args.getStringArrayList(ARG_TRANSLATION)
                                         ));
+                                args.clear();
                             }
                         } else {
                             // handle error
@@ -313,7 +334,17 @@ public class TranslationFragment extends Fragment {
                     }
                 }, Task.UI_THREAD_EXECUTOR);
     }
+
+    private void clear() {
+        cancelDeferredTranslate();
+
+        translatedText.setText(null);
+        translatedFrom.setText("N/A");
+    }
+
     private void translate() {
+        cancelDeferredTranslate();
+
         final String text = sourceText.getText().toString().trim();
         final Language srcLang = selectedSourceLanguage;
         final Language targetLang = selectedTargetLanguage;
@@ -338,6 +369,28 @@ public class TranslationFragment extends Fragment {
                         return null;
                     }
                 }, Task.UI_THREAD_EXECUTOR);
+    }
+
+    private void deferredTranslate() {
+        if (deferredTranslateTask != null) {
+            deferredTranslateTask.cancel();
+            mTimer.purge();
+        }
+        deferredTranslateTask = new TimerTask() {
+            @Override
+            public void run() {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!isDetached()) {
+                            translate();
+                        }
+                    }
+                });
+            }
+        };
+
+        mTimer.schedule(deferredTranslateTask, 500);
     }
 
     private void onTranslationReady(TranslatedText text) {
@@ -421,11 +474,11 @@ public class TranslationFragment extends Fragment {
         }
     }
 
-    private void suppressBackButton(boolean suppress) {
-        FragmentActivity activity = getActivity();
-        if (activity instanceof MainActivity) {
-            MainActivity mainActivity = (MainActivity) activity;
-            mainActivity.suppressBackButton(suppress);
+    private void cancelDeferredTranslate() {
+        if (deferredTranslateTask != null) {
+            deferredTranslateTask.cancel();
+            deferredTranslateTask = null;
+            mTimer.purge();
         }
     }
 

@@ -1,4 +1,4 @@
-package ru.yandex.dictionary;
+package translate.api.yandex.dictionary;
 
 /**
  * Created by Anton Danshin on 29/11/14.

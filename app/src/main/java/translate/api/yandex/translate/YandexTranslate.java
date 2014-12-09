@@ -1,4 +1,4 @@
-package ru.yandex.translate;
+package translate.api.yandex.translate;
 
 import retrofit.ErrorHandler;
 import retrofit.RestAdapter;

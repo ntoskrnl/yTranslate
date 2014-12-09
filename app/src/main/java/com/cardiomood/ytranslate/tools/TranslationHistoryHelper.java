@@ -27,6 +27,7 @@ public class TranslationHistoryHelper {
 
     private static final String TAG = TranslationHistoryHelper.class.getSimpleName();
 
+    // because OrmLite doesn't support UNION
     private static final String GET_RECENT_LANGUAGES_SQL =
             "select\n"+
             "   lang,\n"+
@@ -126,13 +127,13 @@ public class TranslationHistoryHelper {
     }
 
     public List<TranslationHistoryEntity> getFavoriteTranslations(String query, int offset, int limit) throws SQLException {
+
         QueryBuilder<TranslationHistoryEntity, Long> qb = historyDao.queryBuilder()
                 .orderBy("last_accessed", false)
                 .orderBy("src_lang", true)
                 .orderBy("target_lang", true)
                 .offset((long) offset)
                 .limit((long) limit);
-
         Where where = qb.where();
         where.and(
                 where.eq("is_favorite", true),

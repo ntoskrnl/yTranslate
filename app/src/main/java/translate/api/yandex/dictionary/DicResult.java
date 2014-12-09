@@ -1,4 +1,4 @@
-package ru.yandex.dictionary;
+package translate.api.yandex.dictionary;
 
 import java.util.List;
 import java.util.Map;

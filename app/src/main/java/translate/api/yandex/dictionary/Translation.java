@@ -1,8 +1,6 @@
-package ru.yandex.dictionary;
+package translate.api.yandex.dictionary;
 
 import java.util.List;
-
-import retrofit.http.POST;
 
 /**
  * Created by Anton Danshin on 29/11/14.

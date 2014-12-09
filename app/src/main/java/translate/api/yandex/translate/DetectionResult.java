@@ -1,15 +1,12 @@
-package ru.yandex.translate;
-
-import java.util.List;
+package translate.api.yandex.translate;
 
 /**
  * Created by antondanhsin on 26/11/14.
  */
-public class TranslationResult {
+public class DetectionResult {
 
     private int code;
     private String lang;
-    private List<String> text;
 
     public int getCode() {
         return code;
@@ -25,13 +22,5 @@ public class TranslationResult {
 
     public void setLang(String lang) {
         this.lang = lang;
-    }
-
-    public List<String> getText() {
-        return text;
-    }
-
-    public void setText(List<String> text) {
-        this.text = text;
     }
 }
