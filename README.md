@@ -1,2 +1,4 @@
 ## yTranslate
-> Yandex.Translate API demo app for Android
+> Demo app for Yandex.Translate API
+
+Android 2.3+
